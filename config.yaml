@@ -1,0 +1,56 @@
+model_list:
+  # One model_name shared by all four deployments. laya scores each incoming
+  # prompt's complexity and picks the deployment whose complexity_tier matches.
+  - model_name: laya-router
+    litellm_params:
+      model: ollama_chat/llama3.2:1b
+      api_base: os.environ/OLLAMA_API_BASE
+    model_info:
+      input_cost_per_token: 0
+      complexity_tier: tiny
+
+  - model_name: laya-router
+    litellm_params:
+      model: ollama_chat/qwen2.5:3b
+      api_base: os.environ/OLLAMA_API_BASE
+    model_info:
+      input_cost_per_token: 0
+      complexity_tier: small
+
+  - model_name: laya-router
+    litellm_params:
+      model: ollama_chat/qwen2.5:14b
+      api_base: os.environ/OLLAMA_API_BASE
+    model_info:
+      input_cost_per_token: 0
+      complexity_tier: medium
+
+  - model_name: laya-router
+    litellm_params:
+      model: ollama_chat/qwen2.5:32b
+      api_base: os.environ/OLLAMA_API_BASE
+    model_info:
+      input_cost_per_token: 0
+      complexity_tier: large
+
+router_settings:
+  routing_strategy: laya
+  # Optional: override the default tiny/small/medium/large tiers and their
+  # descriptions (the text laya actually scores prompts against). Names here
+  # must match the complexity_tier values above, ordered least to most complex.
+  # routing_strategy_args:
+  #   tiers:
+  #     - name: tiny
+  #       description: single fact lookup, simple definition, basic arithmetic
+  #     - name: small
+  #       description: light reasoning, a short code snippet, casual conversation
+  #     - name: medium
+  #       description: multi-step reasoning, a moderately complex coding task
+  #     - name: large
+  #       description: hard multi-step reasoning, nontrivial system design
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
