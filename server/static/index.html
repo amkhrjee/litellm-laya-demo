@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laya Router Demo</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+      body { background: #111827; color: #e5e7eb; margin: 0; }
+      main { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+      h1 { margin-bottom: 6px; } p { color: #9ca3af; }
+      label { display: block; font-weight: 600; margin-top: 18px; }
+      input, textarea, button { box-sizing: border-box; font: inherit; }
+      input, textarea { width: 100%; margin-top: 7px; padding: 10px; border: 1px solid #374151; border-radius: 7px; background: #1f2937; color: inherit; }
+      textarea { min-height: 140px; resize: vertical; }
+      button { margin-top: 18px; padding: 10px 16px; border: 0; border-radius: 7px; background: #22c55e; color: #052e16; font-weight: 700; cursor: pointer; }
+      button:disabled { opacity: .6; cursor: wait; }
+      #decision { margin-top: 18px; padding: 14px; border: 1px solid #166534; border-radius: 7px; background: #052e16; white-space: pre-wrap; }
+      #decision:empty { display: none; }
+      pre { min-height: 100px; margin-top: 18px; padding: 14px; overflow: auto; border-radius: 7px; background: #030712; white-space: pre-wrap; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Laya Router Demo</h1>
+      <p>Send a prompt to the <code>laya-router</code> model group and see which complexity tier laya routed it to, shown as soon as it's decided -- not after generation finishes.</p>
+
+      <div class="row">
+        <label>LiteLLM proxy URL
+          <input id="proxyUrl" value="http://10.129.6.181:4000" />
+        </label>
+        <label>Proxy API key
+          <input id="apiKey" type="password" value="local-dev-key" autocomplete="off" />
+        </label>
+      </div>
+
+      <label>Prompt
+        <textarea id="prompt">Explain dependency injection in two sentences.</textarea>
+      </label>
+      <button id="send">Send request</button>
+      <div id="decision"></div>
+      <pre id="output">Ready.</pre>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      // Parses the backend's SSE stream (event: <type>\ndata: <json>\n\n
+      // blocks) and invokes onEvent(type, data) for each complete one as it
+      // arrives, without waiting for the stream to finish.
+      async function readSSE(response, onEvent) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let sep;
+          while ((sep = buffer.indexOf("\n\n")) !== -1) {
+            const raw = buffer.slice(0, sep);
+            buffer = buffer.slice(sep + 2);
+            const eventLine = raw.split("\n").find((l) => l.startsWith("event:"));
+            const dataLine = raw.split("\n").find((l) => l.startsWith("data:"));
+            if (!eventLine || !dataLine) continue;
+            const type = eventLine.slice("event:".length).trim();
+            const data = JSON.parse(dataLine.slice("data:".length).trim());
+            onEvent(type, data);
+          }
+        }
+      }
+
+      $("send").addEventListener("click", async () => {
+        const button = $("send");
+        const output = $("output");
+        const decision = $("decision");
+        button.disabled = true;
+        output.textContent = "";
+        decision.textContent = "Routing…";
+
+        try {
+          const response = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              proxy_url: $("proxyUrl").value,
+              api_key: $("apiKey").value,
+              prompt: $("prompt").value,
+            }),
+          });
+
+          await readSSE(response, (type, data) => {
+            if (type === "decision") {
+              const details = Object.entries(data.headers || {})
+                .map(([name, value]) => `${name}: ${value}`)
+                .join("\n") || "No LiteLLM routing headers were reported.";
+              decision.textContent = `Routing decision\nTier: ${data.tier}\nRouted model: ${data.routed_model}\n${details}`;
+            } else if (type === "chunk") {
+              output.textContent += data.content;
+            } else if (type === "error") {
+              output.textContent += `\n[error] ${data.body}`;
+            }
+          });
+        } catch (error) {
+          output.textContent = `Request failed: ${error.message}`;
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@ model_list:
   # prompt's complexity and picks the deployment whose complexity_tier matches.
   - model_name: laya-router
     litellm_params:
-      model: ollama_chat/llama3.2:1b
+      model: ollama_chat/deepseek-r1:1.5b
       api_base: os.environ/OLLAMA_API_BASE
     model_info:
       input_cost_per_token: 0
@@ -11,7 +11,7 @@ model_list:
 
   - model_name: laya-router
     litellm_params:
-      model: ollama_chat/qwen2.5:3b
+      model: ollama_chat/qwen3.5:4b
       api_base: os.environ/OLLAMA_API_BASE
     model_info:
       input_cost_per_token: 0
@@ -19,7 +19,7 @@ model_list:
 
   - model_name: laya-router
     litellm_params:
-      model: ollama_chat/qwen2.5:14b
+      model: ollama_chat/qwen3.6:27b
       api_base: os.environ/OLLAMA_API_BASE
     model_info:
       input_cost_per_token: 0
@@ -27,7 +27,7 @@ model_list:
 
   - model_name: laya-router
     litellm_params:
-      model: ollama_chat/qwen2.5:32b
+      model: ollama_chat/gpt-oss:120b
       api_base: os.environ/OLLAMA_API_BASE
     model_info:
       input_cost_per_token: 0

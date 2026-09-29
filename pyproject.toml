@@ -1,0 +1,15 @@
+[project]
+name = "litellm-laya-demo"
+version = "0.1.0"
+description = "Web UI demoing the laya complexity-routing strategy through a LiteLLM proxy"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "pyyaml>=6.0.3",
+    "uvicorn[standard]>=0.53.0",
+]
+
+[tool.uv]
+package = false
